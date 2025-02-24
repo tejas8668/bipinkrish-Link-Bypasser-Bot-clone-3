@@ -228,14 +228,12 @@ async def send_start(client: Client, message: Message):
             )
             await message.reply_text(
                 "✅ **Verification Successful!**\n\n"
-                "You can now use the bot for the next 24 hours without any ads or restrictions.",
-                parse_mode='Markdown'
+                "You can now use the bot for the next 24 hours without any ads or restrictions."
             )
         else:
             await message.reply_text(
                 "❌ **Invalid Token!**\n\n"
-                "Please try verifying again.",
-                parse_mode='Markdown'
+                "Please try verifying again."
             )
         return
     
