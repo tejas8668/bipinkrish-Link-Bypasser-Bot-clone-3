@@ -21,6 +21,7 @@ from db import DB
 import requests
 from datetime import datetime, timedelta
 import os
+import urllib.parse
 
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
