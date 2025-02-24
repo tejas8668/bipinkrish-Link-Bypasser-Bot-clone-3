@@ -20,7 +20,6 @@ from time import time
 from db import DB
 import requests
 from datetime import datetime, timedelta
-import os
 
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
@@ -241,7 +240,7 @@ async def send_start(client: Client, message: Message):
     # If no token, send the welcome message and store user ID in MongoDB
     users_collection.update_one(
         {"user_id": user.id},
-        {"$set": {"username": user.username, "full_name": user.full_name}},
+        {"$set": {"username": user.username, "first_name": user.first_name, "last_name": user.last_name}},
         upsert=True
     )
     await app.send_message(
@@ -308,7 +307,7 @@ async def receive(client: Client, message: Message):
         if not await check_verification(user.id):
             # User needs to verify
             btn = [
-                [InlineKeyboardButton("Verify", url=await get_token(user.id, client.username))],
+                [InlineKeyboardButton("Verify", url=await get_token(user.id, (await client.get_me()).username))],
                 [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
             ]
             await message.reply_text(
