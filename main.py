@@ -339,10 +339,10 @@ def callback_help(client: Client, callback_query: CallbackQuery):
 
 # Define the /broadcast command handler
 @app.on_message(filters.command(["broadcast"]))
-async def broadcast(update: Update, context: CallbackContext) -> None:
-    if update.effective_user.id in admin_ids:
-        message = update.message.reply_to_message
-        if message:
+async def broadcast(client: Client, message: Message):
+    if message.from_user.id in admin_ids:
+        reply_message = message.reply_to_message
+        if reply_message:
             # Fetch all user IDs from MongoDB
             all_users = users_collection.find({}, {"user_id": 1})
             total_users = users_collection.count_documents({})
@@ -353,12 +353,12 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
             for user_data in all_users:
                 user_id = user_data['user_id']
                 try:
-                    if message.photo:
-                        await context.bot.send_photo(chat_id=user_id, photo=message.photo[-1].file_id, caption=message.caption)
-                    elif message.video:
-                        await context.bot.send_video(chat_id=user_id, video=message.video.file_id, caption=message.caption)
+                    if reply_message.photo:
+                        await client.send_photo(chat_id=user_id, photo=reply_message.photo.file_id, caption=reply_message.caption)
+                    elif reply_message.video:
+                        await client.send_video(chat_id=user_id, video=reply_message.video.file_id, caption=reply_message.caption)
                     else:
-                        await context.bot.send_message(chat_id=user_id, text=message.text)
+                        await client.send_message(chat_id=user_id, text=reply_message.text)
                     sent_count += 1
                 except Exception as e:
                     if 'blocked' in str(e):
@@ -366,7 +366,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
                     else:
                         fail_count += 1
 
-            await update.message.reply_text(
+            await message.reply_text(
                 f"Broadcast completed!\n\n"
                 f"Total users: {total_users}\n"
                 f"Messages sent: {sent_count}\n"
@@ -374,10 +374,10 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
                 f"Failed to send messages: {fail_count}"
             )
         else:
-            await update.message.reply_text("Please reply to a message with /broadcast to send it to all users.")
+            await message.reply_text("Please reply to a message with /broadcast to send it to all users.")
     else:
-        await update.message.reply_text("You Have No Rights To Use My Commands")
-
+        await message.reply_text("You have no rights to use my commands.")
+        
 # links
 @app.on_message(filters.text)
 async def receive(client: Client, message: Message):
