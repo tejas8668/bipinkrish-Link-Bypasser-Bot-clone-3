@@ -335,6 +335,46 @@ def callback_help(client: Client, callback_query: CallbackQuery):
         disable_web_page_preview=True,
     )
 
+# Define the /broadcast command handler
+async def broadcast(update: Update, context: CallbackContext) -> None:
+    if update.effective_user.id in admin_ids:
+        message = update.message.reply_to_message
+        if message:
+            # Fetch all user IDs from MongoDB
+            all_users = users_collection.find({}, {"user_id": 1})
+            total_users = users_collection.count_documents({})
+            sent_count = 0
+            block_count = 0
+            fail_count = 0
+
+            for user_data in all_users:
+                user_id = user_data['user_id']
+                try:
+                    if message.photo:
+                        await context.bot.send_photo(chat_id=user_id, photo=message.photo[-1].file_id, caption=message.caption)
+                    elif message.video:
+                        await context.bot.send_video(chat_id=user_id, video=message.video.file_id, caption=message.caption)
+                    else:
+                        await context.bot.send_message(chat_id=user_id, text=message.text)
+                    sent_count += 1
+                except Exception as e:
+                    if 'blocked' in str(e):
+                        block_count += 1
+                    else:
+                        fail_count += 1
+
+            await update.message.reply_text(
+                f"Broadcast completed!\n\n"
+                f"Total users: {total_users}\n"
+                f"Messages sent: {sent_count}\n"
+                f"Users blocked the bot: {block_count}\n"
+                f"Failed to send messages: {fail_count}"
+            )
+        else:
+            await update.message.reply_text("Please reply to a message with /broadcast to send it to all users.")
+    else:
+        await update.message.reply_text("You Have No Rights To Use My Commands")
+
 # links
 @app.on_message(filters.text)
 async def receive(client: Client, message: Message):
