@@ -1,5 +1,3 @@
-from pymongo import MongoClient
-from pyrogram import Client, filters
 from pyrogram import Client, filters
 from pyrogram.types import (
     InlineKeyboardMarkup,
@@ -18,21 +16,7 @@ import bypasser
 import freewall
 from time import time
 from db import DB
-import requests
-from datetime import datetime, timedelta
-import os
-import urllib.parse
 
-# Add this at the top of the file
-VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
-
-admin_ids = [6025969005, 6018060368]
-
-# MongoDB connection
-MONGO_URI = os.getenv('MONGO_URI')  # Get MongoDB URI from environment variables
-client = MongoClient(MONGO_URI)
-db = client['terabox_bot']
-users_collection = db['users']
 
 # bot
 with open("config.json", "r") as f:
@@ -211,41 +195,13 @@ def loopthread(message: Message, otherss=False):
 
 # start command
 @app.on_message(filters.command(["start"]))
-async def send_start(client: Client, message: Message):
-    user = message.from_user
-
-    # Check if the start command includes a token (for verification)
-    if message.command and len(message.command) > 1:
-        token = message.command[1]
-        user_data = users_collection.find_one({"user_id": user.id, "token": token})
-
-        if user_data:
-            # Update the user's verification status
-            users_collection.update_one(
-                {"user_id": user.id},
-                {"$set": {"verified_until": datetime.now() + timedelta(days=1)}},
-                upsert=True
-            )
-            await message.reply_text(
-                "✅ **Verification Successful!**\n\n"
-                "You can now use the bot for the next 24 hours without any ads or restrictions."
-            )
-        else:
-            await message.reply_text(
-                "❌ **Invalid Token!**\n\n"
-                "Please try verifying again."
-            )
-        return
-    
-    # If no token, send the welcome message and store user ID in MongoDB
-    users_collection.update_one(
-        {"user_id": user.id},
-        {"$set": {"username": user.username, "first_name": user.first_name, "last_name": user.last_name}},
-        upsert=True
-    )
-    await app.send_message(
+def send_start(
+    client: Client,
+    message: Message,
+):
+    app.send_message(
         message.chat.id,
-        f"__👋 Hi **{message.from_user.mention}**, I am Link Bypasser Bot. Just send me any supported links and I will get you results.\nCheckout /help to read more.__",
+        f"__👋 Hi **{message.from_user.mention}**, i am Link Bypasser Bot, just send me any supported links and i will you get you results.\nCheckout /help to Read More__",
         reply_markup=InlineKeyboardMarkup(
             [
                 [
@@ -269,7 +225,7 @@ async def send_start(client: Client, message: Message):
             ]
         ),
         reply_to_message_id=message.id,
-    )                
+    )
 
 
 # help command
@@ -295,151 +251,13 @@ def callback_help(client: Client, callback_query: CallbackQuery):
 
 # links
 @app.on_message(filters.text)
-async def receive(client: Client, message: Message):
-    user = message.from_user
-
-    # Check if user is admin
-    if user.id in admin_ids:
-        # Admin does not need verification
-        pass
-    else:
-        # User needs verification
-        if not await check_verification(user.id):
-            # User needs to verify
-            btn = [
-                [InlineKeyboardButton("Verify", url=await get_token(user.id, (await client.get_me()).username))],
-                [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
-            ]
-            await message.reply_text(
-                text="🚨 Token Expired!\n\n"
-                     "Timeout: 24 hours\n\n"
-                     "Your access token has expired. Verify it to continue using the bot!\n\n"
-                     "🔑 Why Tokens?\n\n"
-                     "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
-                     "👉 Tap below to verify your token.\n\n"
-                     "Thank you for your support! ❤️",
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-            return
-    # Proceed with the bypass process
+def receive(
+    client: Client,
+    message: Message,
+):
     bypass = Thread(target=lambda: loopthread(message), daemon=True)
     bypass.start()
 
-async def check_verification(user_id: int) -> bool:
-    user = users_collection.find_one({"user_id": user_id})
-    if user and user.get("verified_until", datetime.min) > datetime.now():
-        return True
-    return False
-
-async def get_token(user_id: int, bot_username: str) -> str:
-    # Generate a random token
-    token = os.urandom(16).hex()
-    # Update user's verification status in database
-    users_collection.update_one(
-        {"user_id": user_id},
-        {"$set": {"token": token, "verified_until": datetime.min}},  # Reset verified_until to min
-        upsert=True
-    )
-    # Create verification link
-    verification_link = f"https://telegram.me/{bot_username}?start={token}"
-    # Shorten verification link using shorten_url_link function
-    shortened_link = shorten_url_link(verification_link)
-    return shortened_link
-
-def shorten_url_link(url):
-    api_url = 'https://short2url.in/api'
-    api_key = '29783f6a8e3f1e51567e187ef790ad0a04ca1ba3'
-    params = {
-        'api': api_key,
-        'url': url
-    }
-    # Yahan pe custom certificate bundle ka path specify karo
-    response = requests.get(api_url, params=params, verify=False)
-    if response.status_code == 200:
-        data = response.json()
-        if data['status'] == 'success':
-            logger.info(f"Adrinolinks shortened URL: {data['shortenedUrl']}")
-            return data['shortenedUrl']
-    logger.error(f"Failed to shorten URL with Adrinolinks: {url}")
-    return url
-
-# stats command
-@app.on_message(filters.command(["stats"]))
-async def stats(client: Client, message: Message):
-    if message.from_user.id in admin_ids:
-        try:
-            # Get total users
-            total_users = users_collection.count_documents({})
-
-            # Get MongoDB database stats
-            db_stats = db.command("dbstats")
-
-            # Calculate used storage
-            used_storage_mb = db_stats['dataSize'] / (1024 ** 2)  # Convert bytes to MB
-
-            # Calculate total and free storage (if available)
-            if 'fsTotalSize' in db_stats:
-                total_storage_mb = db_stats['fsTotalSize'] / (1024 ** 2)  # Convert bytes to MB
-                free_storage_mb = total_storage_mb - used_storage_mb
-            else:
-                total_storage_mb = "N/A"
-                free_storage_mb = "N/A"
-
-            # Prepare the response message
-            message_text = (
-                f"📊 **Bot Statistics**\n\n"
-                f"👥 **Total Users:** {total_users}\n"
-                f"💾 **MongoDB Used Storage:** {used_storage_mb:.2f} MB\n"
-                f"🆓 **MongoDB Free Storage:** {free_storage_mb if isinstance(free_storage_mb, str) else f'{free_storage_mb:.2f} MB'}\n"
-            )
-
-            await message.reply_text(message_text)
-        except Exception as e:
-            logger.error(f"Error fetching stats: {e}")
-            await message.reply_text("❌ An error occurred while fetching stats.")
-    else:
-        await message.reply_text("You have no rights to use my commands.")
-
-# broadcast command
-@app.on_message(filters.command(["broadcast"]))
-async def broadcast(client: Client, message: Message):
-    if message.from_user.id in admin_ids:
-        message_to_broadcast = message.reply_to_message
-        if message_to_broadcast:
-            # Fetch all user IDs from MongoDB
-            all_users = users_collection.find({}, {"user_id": 1})
-            total_users = users_collection.count_documents({})
-            sent_count = 0
-            block_count = 0
-            fail_count = 0
-
-            for user_data in all_users:
-                user_id = user_data['user_id']
-                try:
-                    if message_to_broadcast.photo:
-                        await client.send_photo(chat_id=user_id, photo=message_to_broadcast.photo.file_id, caption=message_to_broadcast.caption)
-                    elif message_to_broadcast.video:
-                        await client.send_video(chat_id=user_id, video=message_to_broadcast.video.file_id, caption=message_to_broadcast.caption)
-                    else:
-                        await client.send_message(chat_id=user_id, text=message_to_broadcast.text)
-                    sent_count += 1
-                except Exception as e:
-                    if 'blocked' in str(e):
-                        block_count += 1
-                    else:
-                        fail_count += 1
-
-            await message.reply_text(
-                f"Broadcast completed!\n\n"
-                f"Total users: {total_users}\n"
-                f"Messages sent: {sent_count}\n"
-                f"Users blocked the bot: {block_count}\n"
-                f"Failed to send messages: {fail_count}"
-            )
-        else:
-            await message.reply_text("Please reply to a message with /broadcast to send it to all users.")
-    else:
-        await message.reply_text("You have no rights to use my commands.")
 
 # doc thread
 def docthread(message: Message):
