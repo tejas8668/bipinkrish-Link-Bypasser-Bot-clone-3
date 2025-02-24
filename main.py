@@ -23,8 +23,6 @@ from datetime import datetime, timedelta
 import os
 import urllib.parse
 import logging
-from telegram import Update
-from telegram.ext import CallbackContext
 
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
