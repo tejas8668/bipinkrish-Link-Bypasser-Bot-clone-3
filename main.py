@@ -23,6 +23,8 @@ from datetime import datetime, timedelta
 import os
 import urllib.parse
 import logging
+from telegram import Update
+from telegram.ext import CallbackContext
 
 # Add this at the top of the file
 VERIFICATION_REQUIRED = os.getenv('VERIFICATION_REQUIRED', 'true').lower() == 'true'
@@ -336,6 +338,7 @@ def callback_help(client: Client, callback_query: CallbackQuery):
     )
 
 # Define the /broadcast command handler
+@app.on_message(filters.command(["broadcast"]))
 async def broadcast(update: Update, context: CallbackContext) -> None:
     if update.effective_user.id in admin_ids:
         message = update.message.reply_to_message
