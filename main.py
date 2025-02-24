@@ -320,7 +320,7 @@ async def receive(client: Client, message: Message):
                      "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
                      "<b>👉 Tap below to verify your token.</b>\n\n"
                      "Thank you for your support! ❤️",
-                parse_mode='HTML',
+                parse_mode='html',
                 reply_markup=InlineKeyboardMarkup(btn)
             )
             return
