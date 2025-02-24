@@ -294,6 +294,39 @@ def send_help(
         disable_web_page_preview=True,
     )
 
+# stats command
+@app.on_message(filters.command(["stats"]))
+async def stats(client: Client, message: Message):
+    if message.from_user.id in admin_ids:
+        try:
+            # Get total users
+            total_users = users_collection.count_documents({})
+
+            # Get MongoDB database stats
+            db_stats = db.command("dbstats")
+
+            # Calculate used storage
+            used_storage_mb = db_stats['dataSize'] / (1024 ** 2)  # Convert bytes to MB
+
+            # Total MongoDB storage
+            total_storage_mb = 512  # Total MongoDB storage in MB
+            free_storage_mb = total_storage_mb - used_storage_mb
+
+            # Prepare the response message
+            message_text = (
+                f"📊 **Bot Statistics**\n\n"
+                f"👥 **Total Users:** {total_users}\n"
+                f"💾 **MongoDB Used Storage:** {used_storage_mb:.2f} MB\n"
+                f"🆓 **MongoDB Free Storage:** {free_storage_mb:.2f} MB\n"
+            )
+
+            await message.reply_text(message_text)
+        except Exception as e:
+            logger.error(f"Error fetching stats: {e}")
+            await message.reply_text("❌ An error occurred while fetching stats.")
+    else:
+        await message.reply_text("You have no rights to use my commands.")
+
 # callback query handler
 @app.on_callback_query(filters.regex("send_help"))
 def callback_help(client: Client, callback_query: CallbackQuery):
