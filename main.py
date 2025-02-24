@@ -313,14 +313,13 @@ async def receive(client: Client, message: Message):
                 [InlineKeyboardButton("How To Open Link & Verify", url="https://t.me/how_to_download_0011")]
             ]
             await message.reply_text(
-                text="🚨 <b>Token Expired!</b>\n\n"
-                     "<b>Timeout: 24 hours</b>\n\n"
+                text="🚨 Token Expired!\n\n"
+                     "Timeout: 24 hours\n\n"
                      "Your access token has expired. Verify it to continue using the bot!\n\n"
-                     "<b>🔑 Why Tokens?</b>\n\n"
+                     "🔑 Why Tokens?\n\n"
                      "Tokens unlock premium features with a quick ad process. Enjoy 24 hours of uninterrupted access! 🌟\n\n"
-                     "<b>👉 Tap below to verify your token.</b>\n\n"
+                     "👉 Tap below to verify your token.\n\n"
                      "Thank you for your support! ❤️",
-                parse_mode='html',
                 reply_markup=InlineKeyboardMarkup(btn)
             )
             return
